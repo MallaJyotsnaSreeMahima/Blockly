@@ -1,0 +1,60 @@
+services:
+  # ─────────────────────────── 1. MongoDB ───────────────────────────
+  - type: docker
+    name: mongodb
+    env: docker
+    plan: starter   # or free tier if you stay < 256 MB
+    dockerContext: .
+    dockerfilePath: ./mongo.Dockerfile   # we’ll create a 2-line Dockerfile
+    autoDeploy: false
+    healthCheckPath: /      # dummy, Mongo doesn’t expose HTTP
+    # a private service, no public port
+    noPublicLogs: true
+    envVars:
+      - key: MONGO_INITDB_ROOT_USERNAME
+        value: root
+      - key: MONGO_INITDB_ROOT_PASSWORD
+        value: examplepassword
+      - key: MONGO_INITDB_DATABASE
+        value: Blockly
+
+  # ──────────────────── 2. Prolog knowledge-base API ────────────────
+  - type: docker
+    name: knowledge-base
+    env: docker
+    dockerContext: ./knowledge-base
+    dockerfilePath: ./knowledge-base/Dockerfile
+    envVars:
+      - key: PORT            # Render injects PORT in nginx/NODE, but not in bare images
+        value: 5001
+
+  # ───────────────────── 3. Django REST middleware ──────────────────
+  - type: web
+    name: django-backend
+    env: docker
+    dockerContext: ./blockly-middleware-service
+    dockerfilePath: ./blockly-middleware-service/Dockerfile
+    plan: starter
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DB_HOST
+        value: mongodb
+      - key: DB_NAME
+        value: Blockly
+      - key: DB_USER
+        value: root
+      - key: DB_PASS
+        value: examplepassword
+      - key: KB_URL
+        value: http://knowledge-base:5001/query
+    healthCheckPath: /api/health/    # add a tiny view in Django that returns 200 OK
+
+  # ───────────────────── 4. React front-end (Nginx) ─────────────────
+  - type: web
+    name: blockly-frontend
+    env: docker
+    dockerContext: ./Blockly_Interface
+    dockerfilePath: ./Blockly_Interface/Dockerfile
+    plan: starter
+    # public service; just uses default port 80 exposed by nginx

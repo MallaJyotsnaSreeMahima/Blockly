@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  # ────────────── 1. MongoDB (already in your file) ──────────────
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: examplepassword
+      MONGO_INITDB_DATABASE: Blockly
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+
+  # ────────────── 2. Knowledge-base (SWI-Prolog) ──────────────
+  knowledge-base:
+    build:
+      context: ./knowledge-base
+      dockerfile: Dockerfile       # (you’ll create this)
+    container_name: prolog_kb
+    restart: unless-stopped
+    ports:
+      - "5001:5001"                # Prolog HTTP server
+    volumes:
+      - ./knowledge-base/knowledge.ttl:/app/knowledge.ttl
+    depends_on:
+      - mongodb                    # only if you query Mongo inside Prolog
+
+  # ────────────── 3. Django middleware ──────────────
+  backend:
+    build:
+      context: ./blockly-middleware-service
+      dockerfile: Dockerfile       # (you’ll create this)
+    container_name: django_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=mongodb
+      - DB_NAME=Blockly
+      - DB_USER=root
+      - DB_PASS=examplepassword
+      - KB_URL=http://knowledge-base:5001/query
+    depends_on:
+      - mongodb
+      - knowledge-base
+
+  # ────────────── 4. React front-end (serves via Nginx) ─────────
+  frontend:
+    build:
+      context: ./Blockly_Interface
+      dockerfile: Dockerfile       # (you’ll create this)
+    container_name: react_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"                    # open http://localhost
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+  mongodb_config:

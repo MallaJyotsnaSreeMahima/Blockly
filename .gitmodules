@@ -1,0 +1,12 @@
+[submodule "Blockly_Interface"]
+	path = Blockly_Interface
+	url = https://github.com/you/blockly-interface.git
+	branch = Development-Group
+[submodule "blockly-middleware-service"]
+	path = blockly-middleware-service
+	url = https://github.com/you/blockly-middleware-service.git
+	branch = Development-Group
+[submodule "knowledge-base"]
+	path = knowledge-base
+	url = https://github.com/you/blockly-knowledge-base.git
+	branch = Development-Group
